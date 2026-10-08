@@ -209,7 +209,7 @@ textarea.field.tx { height: auto; min-height: 58px; padding: 5px 7px; font: 13px
 .tg { width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 3px; background: var(--raise); flex: 0 0 auto; padding: 0; }
 .tg[aria-pressed="true"] { background: var(--ink); color: var(--chrome); border-color: var(--ink); }
 .seg.small button { height: 24px; padding: 0 9px; font-size: 12px; }
-.spc { flex: 0 0 66px; }
+.spc { flex: 0 0 80px; }
 kbd { font-family: var(--mono); font-size: 11px; padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; background: var(--raise); color: var(--ink-2); }
 #stage { grid-area: stage; position: relative; min-width: 0; min-height: 0; background: var(--cv-bg); overflow: hidden; }
 #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
@@ -235,7 +235,7 @@ font-size: 12px; max-width: calc(100% - 20px); box-shadow: 0 2px 8px rgba(0, 0, 
 #toolopts label:not(:first-child) { margin-left: 6px; }
 .vrow { display: flex; align-items: center; gap: 4px; min-height: 28px; color: var(--ink-3); }
 .vrow .field:first-child { flex: 0 0 62px; font-family: var(--sans); }
-.vrow .field { flex: 1 1 auto; padding: 0 5px; }
+.vrow .field { flex: 1 1 auto; padding: 0 5px; color: var(--ink); }
 .vrow .x { flex: 0 0 20px; width: 20px; }
 .vval { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); padding: 0 0 4px 76px; overflow-wrap: anywhere; }
 .sec .row + .vval { padding-left: 84px; }
@@ -279,8 +279,20 @@ background-size: 14px 14px; background-position: 0 0, 7px 7px;
 }
 .preview img { max-width: 100%; max-height: 260px; }
 textarea.code { width: 100%; height: 150px; margin-top: 10px; font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; background: var(--raise); color: var(--ink); padding: 6px; resize: vertical; }
-.keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 18px; }
-.keys div { display: flex; justify-content: space-between; gap: 8px; min-height: 22px; align-items: center; }
+.dialog.wide { width: min(880px, 100%); }
+.keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px 22px; align-items: start; }
+.keys section h2 { margin: 6px 0 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); }
+.keys div { display: flex; justify-content: space-between; gap: 8px; min-height: 22px; align-items: center; font-size: 12.5px; }
+.keys .ks { display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; }
+.keys kbd { white-space: nowrap; }
+#typein {
+position: absolute; z-index: 5; display: flex; flex-direction: column; gap: 2px; padding: 4px 5px 5px;
+border: 1.5px solid var(--accent); border-radius: 4px; background: var(--raise); box-shadow: 0 3px 12px rgba(0, 0, 0, .14);
+}
+#typein[hidden] { display: none; }
+#typein-l { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+#typein-i { width: 128px; height: 24px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); color: var(--ink); font-family: var(--mono); font-size: 12.5px; padding: 0 6px; }
+#typein-i.bad { border-color: var(--bad); }
 .only-narrow { display: none; }
 @media (max-width: 940px) {
 #app { grid-template-columns: minmax(0, 1fr); grid-template-areas: "doc" "tools" "stage" "status"; }
@@ -316,7 +328,7 @@ textarea.code { width: 100%; height: 150px; margin-top: 10px; font-family: var(-
       <button type="button" id="btnClean" aria-pressed="false" title="Clean view: exactly what is exported (Tab)">Clean</button>
     </div>
     <button class="btn" id="btnCopy" type="button" title="Copy the drawing as a 300 dpi image for pasting into PowerPoint or Visio"><span class="hide-narrow">Copy as image</span></button>
-    <button class="btn primary" id="btnExport" type="button" title="Export SVG or PNG"><span class="hide-narrow">Export</span></button>
+    <button class="btn primary" id="btnExport" type="button" title="Export SVG, PNG, PDF or DXF"><span class="hide-narrow">Export</span></button>
     <button class="btn icon quiet only-narrow" id="btnRight" type="button" title="Properties panel" aria-label="Properties panel"></button>
   </header>
 
@@ -330,6 +342,7 @@ textarea.code { width: 100%; height: 150px; margin-top: 10px; font-family: var(-
     <div id="toolopts" hidden></div>
     <div id="example" hidden><span>Example drawing</span><button class="btn small" id="btnBlank" type="button">Start blank</button><button class="x" id="btnExampleClose" type="button" aria-label="Dismiss">&times;</button></div>
     <input id="dimedit" type="text" autocomplete="off" spellcheck="false" aria-label="Dimension value" hidden>
+    <div id="typein" hidden><span id="typein-l"></span><input id="typein-i" type="text" autocomplete="off" spellcheck="false" aria-labelledby="typein-l"></div>
     <div id="toast" role="status" hidden></div>
   </main>
 
@@ -3418,7 +3431,7 @@ const lines = [];
 let other = false;
 for (const id in doc.entities) {
 const e = doc.entities[id];
-if (e.ref || e.type === 'point') continue;
+if (e.ref || e.type === 'point' || e.type === 'text') continue;
 for (const p of entPoints(e)) {
 if (uf.find(p) !== root) continue;
 if (e.type === 'line') lines.push({ e, p }); else other = true;
@@ -3804,6 +3817,193 @@ for (const [l, a] of [[top, capA], [top, capB], [bot, capB], [bot, capA]]) addCo
 addCon(doc, { type: 'equal', refs: [capA, capB] });
 return { lines: [top, bot], arcs: [capA, capB], c1: E[capA].c, c2: E[capB].c };
 }
+const PT_KEYS = ['p1', 'p2', 'c', 's', 'e', 'a', 'm', 'p'];
+function entSet(doc, ids) {
+const ents = new Set(), pts = new Set();
+for (const id of ids) {
+const e = doc.entities[id];
+if (!e || e.ref) continue;
+ents.add(id);
+for (const p of entPoints(e)) pts.add(p);
+}
+return { ents, pts, has: r => ents.has(r) || pts.has(r) };
+}
+function conIds(c) {
+const out = c.refs.slice();
+if (c.src) out.push(...c.src);
+if (c.inst) for (const row of c.inst) for (const id of row) if (id) out.push(id);
+if (c.center) out.push(c.center);
+if (c.pairs) for (const pr of c.pairs) out.push(pr[0], pr[1]);
+return out;
+}
+function entBounds(doc, ids) {
+const b = [Infinity, Infinity, -Infinity, -Infinity];
+const add = (x, y) => { if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y; if (x > b[2]) b[2] = x; if (y > b[3]) b[3] = y; };
+for (const id of ids) {
+const e = doc.entities[id];
+if (!e || e.ref) continue;
+if (e.type === 'circle') { const c = doc.points[e.c]; add(c.x - e.r, c.y - e.r); add(c.x + e.r, c.y + e.r); }
+else if (e.type === 'arc') {
+const c = doc.points[e.c], s = doc.points[e.s], en = doc.points[e.e], r = Math.hypot(s.x - c.x, s.y - c.y);
+const a0 = Math.atan2(s.y - c.y, s.x - c.x), sw = normAng(Math.atan2(en.y - c.y, en.x - c.x) - a0);
+add(s.x, s.y); add(en.x, en.y);
+for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2; if (normAng(a - a0) <= sw) add(c.x + r * Math.cos(a), c.y + r * Math.sin(a)); }
+} else for (const p of entPoints(e)) add(doc.points[p].x, doc.points[p].y);
+}
+return b[0] <= b[2] ? b : null;
+}
+function clipEntities(doc, ids) {
+const S = entSet(doc, ids);
+if (!S.ents.size) return null;
+const cons = [];
+for (const cid in doc.constraints) {
+const c = doc.constraints[cid];
+if (conValid(doc, c) && conIds(c).every(S.has)) cons.push(JSON.parse(JSON.stringify(c)));
+}
+const shapes = [];
+for (const k in doc.shapes) {
+const r = doc.shapes[k];
+if (!r.ents.length || !r.ents.every(e => S.ents.has(e))) continue;
+shapes.push({ kind: k.slice(0, 2), rec: JSON.parse(JSON.stringify(r)), top: topGroup(doc, r.group) });
+}
+return {
+app: 'PrecisionSketch-clip', v: 1,
+ents: Array.from(S.ents).map(id => JSON.parse(JSON.stringify(doc.entities[id]))),
+pts: Array.from(S.pts).map(id => { const p = doc.points[id]; return { id, x: p.x, y: p.y, owner: p.owner }; }),
+cons, shapes, bbox: entBounds(doc, Array.from(S.ents))
+};
+}
+function pasteClip(doc, clip, dx, dy) {
+if (!clip || !clip.ents || !clip.ents.length) return { ok: false, error: 'Nothing has been copied yet' };
+const snap = JSON.stringify(doc);
+const em = new Map(), pm = new Map();
+for (const e of clip.ents) em.set(e.id, nid(doc, 'e'));
+for (const p of clip.pts) pm.set(p.id, nid(doc, 'p'));
+for (const p of clip.pts) { const id = pm.get(p.id); doc.points[id] = { id, x: p.x + dx, y: p.y + dy, owner: em.get(p.owner) }; }
+for (const e of clip.ents) {
+const n = JSON.parse(JSON.stringify(e));
+n.id = em.get(e.id);
+for (const k of PT_KEYS) if (typeof n[k] === 'string' && pm.has(n[k])) n[k] = pm.get(n[k]);
+if (n.pts) n.pts = n.pts.map(p => pm.get(p));
+doc.entities[n.id] = n;
+}
+const map = id => em.get(id) || pm.get(id) || id;
+for (const c0 of clip.cons) {
+const c = JSON.parse(JSON.stringify(c0));
+delete c.id;
+c.refs = c.refs.map(map);
+if (c.src) c.src = c.src.map(map);
+if (c.inst) c.inst = c.inst.map(row => row.map(id => id && map(id)));
+if (c.center) c.center = map(c.center);
+if (c.pairs) c.pairs = c.pairs.map(pr => [map(pr[0]), map(pr[1])]);
+addCon(doc, c);
+}
+const res = trySolve(doc);
+if (!res.ok) { restoreInto(doc, snap); return { ok: false, error: 'The copy could not be solved' }; }
+const ids = clip.ents.map(e => em.get(e.id));
+styleCopies(doc, clip, em);
+return { ok: true, ids, em, pm };
+}
+function styleCopies(doc, clip, em) {
+if (!clip.shapes || !clip.shapes.length) return;
+const topo = computeTopology(doc, buildSystem(doc));
+syncShapes(doc, topo);
+const sig = (kind, ents) => kind + ents.slice().sort().join(',');
+const want = new Map();
+for (const s of clip.shapes) want.set(sig(s.kind, s.rec.ents.map(id => em.get(id))), s);
+const groups = new Map();
+const found = [];
+for (const k in doc.shapes) {
+const s = want.get(sig(k.slice(0, 2), doc.shapes[k].ents));
+if (s) found.push([k, s]);
+}
+found.sort((a, b) => a[1].rec.z - b[1].rec.z);
+for (const [k, s] of found) {
+const r = doc.shapes[k];
+for (const key of STYLE_KEYS) if (s.rec[key] !== undefined) r[key] = s.rec[key];
+for (const key of ['grad', 'arrowS', 'arrowE', 'arrowSize', 'own']) {
+if (s.rec[key] !== undefined) r[key] = JSON.parse(JSON.stringify(s.rec[key])); else delete r[key];
+}
+if (s.rec.user) r.user = true;
+r.layer = layerById(doc, s.rec.layer) ? s.rec.layer : defaultLayer(doc);
+r.z = ++doc.zTop;
+if (s.top) {
+if (!groups.has(s.top)) { const g = 'G' + (doc.nextId++); doc.groups[g] = { id: g, parent: null }; groups.set(s.top, g); }
+r.group = groups.get(s.top);
+} else delete r.group;
+}
+}
+function holdingCons(doc, S) {
+const out = [];
+for (const cid in doc.constraints) {
+const c = doc.constraints[cid];
+if (!conValid(doc, c)) continue;
+const ids = conIds(c), n = ids.filter(S.has).length;
+if ((n > 0 && n < ids.length) || (c.type === 'fix' && n === ids.length)) out.push(cid);
+}
+return out;
+}
+function transformEntities(doc, ids, xf, opts) {
+opts = opts || {};
+const S = entSet(doc, ids);
+if (!S.ents.size) return { ok: false, error: 'Select curves, shapes or text first' };
+if (xf.kind === 'scale' && !(xf.k > 0)) return { ok: false, error: 'The scale factor must be greater than zero' };
+const snap = JSON.stringify(doc);
+const note = { lost: 0, exprs: 0, detached: 0 };
+if (opts.detach) { const h = holdingCons(doc, S); note.detached = h.length; for (const cid of h) delete doc.constraints[cid]; }
+let map;
+if (xf.kind === 'move') map = (x, y) => [x + xf.dx, y + xf.dy];
+else if (xf.kind === 'rotate') {
+const cs = Math.cos(xf.angle), sn = Math.sin(xf.angle);
+map = (x, y) => [xf.cx + cs * (x - xf.cx) - sn * (y - xf.cy), xf.cy + sn * (x - xf.cx) + cs * (y - xf.cy)];
+} else map = (x, y) => [xf.cx + xf.k * (x - xf.cx), xf.cy + xf.k * (y - xf.cy)];
+const inner = [];
+for (const cid in doc.constraints) { const c = doc.constraints[cid]; if (conValid(doc, c) && conIds(c).every(S.has)) inner.push(c); }
+if (xf.kind === 'rotate') {
+const q = normAng(xf.angle), quarter = Math.round(q / (Math.PI / 2)), exact = Math.abs(q - quarter * Math.PI / 2) < 1e-9;
+const hv = inner.filter(c => c.type === 'horizontal' || c.type === 'vertical');
+if (exact && quarter % 2 === 1) for (const c of hv) c.type = c.type === 'horizontal' ? 'vertical' : 'horizontal';
+else if (!exact) {
+const H = [], V = [];
+for (const c of hv) {
+if (c.refs.length === 1) (c.type === 'horizontal' ? H : V).push(c.refs[0]); else note.lost++;
+delete doc.constraints[c.id];
+}
+for (let i = 1; i < H.length; i++) addCon(doc, { type: 'parallel', refs: [H[0], H[i]] });
+for (let i = 1; i < V.length; i++) addCon(doc, { type: 'parallel', refs: [V[0], V[i]] });
+if (H.length && V.length) addCon(doc, { type: 'perpendicular', refs: [H[0], V[0]] });
+}
+}
+if (xf.kind === 'scale') {
+for (const c of inner) {
+if (!isDim(c) || c.type === 'angle') continue;
+c.value *= xf.k;
+if (c.expr !== undefined) { delete c.expr; delete c.xu; note.exprs++; }
+}
+for (const id of S.ents) {
+const e = doc.entities[id];
+if (e.type === 'circle') e.r *= xf.k;
+else if (e.type === 'text') e.size *= xf.k;
+}
+}
+const target = new Map();
+for (const pid of S.pts) { const p = doc.points[pid], t = map(p.x, p.y); target.set(pid, t); p.x = t[0]; p.y = t[1]; }
+const res = trySolve(doc);
+let worst = res.ok ? 0 : Infinity, ext = 1;
+const bb = entBounds(doc, Array.from(S.ents));
+if (bb) ext = Math.max(1, bb[2] - bb[0], bb[3] - bb[1]);
+if (res.ok) for (const [pid, t] of target) { const p = doc.points[pid]; worst = Math.max(worst, Math.hypot(p.x - t[0], p.y - t[1])); }
+if (worst > 1e-6 * ext) {
+restoreInto(doc, snap);
+const hold = holdingCons(doc, S);
+if (hold.length) {
+const list = hold.slice(0, 3).map(cid => describeCon(doc, doc.constraints[cid]));
+return { ok: false, held: hold, error: 'Constraints that tie it to the rest of the sketch hold it in place (' + list.join('; ') + (hold.length > 3 ? '; …' : '') + ')' };
+}
+return { ok: false, error: 'The sketch could not be solved after that change' };
+}
+return Object.assign({ ok: true }, note);
+}
 function hexRGB(hex) {
 const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
 return m ? [parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255] : [0, 0, 0];
@@ -4060,7 +4260,8 @@ mirrorEntities, patternLinear, patternCircular, addPolygon, addSlot,
 addText, layerById, layerIndex, groupPath, topGroup, hitItem, itemAlpha, textLayout, textWidth, setTextMeasure, textFont, fontInfo, FONTS,
 arrowInfo, gradLine, hasGrad, fillPaint, itemBox, traceSegs, TEXT_COLOR, ARROW_SIZE,
 addLayer, removeLayer, moveLayer, setLayer, reorder, groupShapes, ungroupShapes, expandGroups, moveEntitySets, arrangeShapes,
-buildPDF, buildDXF, zipStore, itemEntities, segsToCubics
+buildPDF, buildDXF, zipStore, itemEntities, segsToCubics,
+clipEntities, pasteClip, transformEntities, entBounds, holdingCons, STYLE_KEYS
 };
 })();
 </script>
@@ -4131,7 +4332,8 @@ bottom: { s: 'M3 16.5h14M5.5 5H9v9H5.5zM11 8.5h3.5V14H11z' },
 hdist: { s: 'M3 3v14M17 3v14M8.5 6h3v8h-3z' },
 vdist: { s: 'M3 3h14M3 17h14M6 8.5h8v3H6z' },
 group: { s: 'M2.5 2.5h15v15h-15zM5.5 5.5h5v5h-5zM9.5 9.5h5v5h-5z' },
-ungroup: { s: 'M3 3h6.5v6.5H3zM10.5 10.5H17V17h-6.5z' }
+ungroup: { s: 'M3 3h6.5v6.5H3zM10.5 10.5H17V17h-6.5z' },
+transform: { s: 'M10 2.5v15M2.5 10h15M7.6 4.9L10 2.5l2.4 2.4M7.6 15.1l2.4 2.4 2.4-2.4M4.9 7.6L2.5 10l2.4 2.4M15.1 7.6l2.4 2.4-2.4 2.4' }
 };
 function iconSvg(name) {
 const i = ICON[name];
@@ -4144,21 +4346,32 @@ if (!iconPaths[name]) { const i = ICON[name] || ICON.coincident; iconPaths[name]
 return iconPaths[name];
 }
 const TOOLS = [
-{ grp: 'Create', items: [['select', 'Select', 'Esc'], ['line', 'Line', 'L'], ['rect', 'Corner rectangle', 'R'], ['circle', 'Center circle', 'C'], ['arc', '3-point arc', 'A'], ['ellipse', 'Ellipse', ''], ['polygon', 'Polygon', ''], ['slot', 'Slot', ''], ['spline', 'Spline', 'S'], ['point', 'Point', ''], ['text', 'Text', ''], ['construction', 'Construction on/off', 'Q']] },
-{ grp: 'Modify', items: [['trim', 'Trim', 'M'], ['extend', 'Extend', 'X'], ['split', 'Split', ''], ['fillet', 'Fillet', 'Shift+F'], ['chamfer', 'Chamfer', ''], ['offset', 'Offset', 'O'], ['mirror', 'Mirror', ''], ['linpat', 'Linear pattern', ''], ['circpat', 'Circular pattern', '']] },
+{ grp: 'Create', items: [['select', 'Select', 'Esc'], ['line', 'Line', 'L'], ['rect', 'Rectangle', 'R'], ['circle', 'Circle', 'C'], ['arc', 'Arc', 'A'], ['ellipse', 'Ellipse', ''], ['polygon', 'Polygon', ''], ['slot', 'Slot', ''], ['spline', 'Spline', 'S'], ['point', 'Point', ''], ['text', 'Text', ''], ['construction', 'Construction on/off', 'Q']] },
+{ grp: 'Modify', items: [['trim', 'Trim', 'M'], ['extend', 'Extend', 'X'], ['split', 'Split', ''], ['fillet', 'Fillet', 'Shift+F'], ['chamfer', 'Chamfer', ''], ['offset', 'Offset', 'O'], ['mirror', 'Mirror', ''], ['linpat', 'Linear pattern', ''], ['circpat', 'Circular pattern', ''], ['transform', 'Move, rotate or scale by exact amounts', 'Shift+T']] },
 { grp: 'Constrain', items: [['coincident', 'Coincident', 'I'], ['horizontal', 'Horizontal', 'H'], ['vertical', 'Vertical', 'V'], ['parallel', 'Parallel', 'B'], ['perpendicular', 'Perpendicular', 'Shift+L'], ['tangent', 'Tangent', 'T'], ['equal', 'Equal', 'E'], ['concentric', 'Concentric', 'Shift+O'], ['midpoint', 'Midpoint', 'Shift+M'], ['symmetric', 'Symmetric', 'Shift+S'], ['collinear', 'Collinear', ''], ['fix', 'Fix', 'Shift+X']] },
 { grp: 'Dimension', items: [['dimension', 'Dimension', 'D']] }
 ];
 const CON_TOOLS = { coincident: 1, horizontal: 1, vertical: 1, parallel: 1, perpendicular: 1, tangent: 1, equal: 1, concentric: 1, midpoint: 1, fix: 1, symmetric: 1, collinear: 1 };
 const KEYMAP = { l: 'line', r: 'rect', c: 'circle', a: 'arc', d: 'dimension', i: 'coincident', h: 'horizontal', v: 'vertical', b: 'parallel', t: 'tangent', e: 'equal', s: 'spline', m: 'trim', x: 'extend', o: 'offset' };
-const SHIFT_KEYMAP = { l: 'perpendicular', o: 'concentric', m: 'midpoint', x: 'fix', s: 'symmetric', f: 'fillet' };
+const SHIFT_KEYMAP = { l: 'perpendicular', o: 'concentric', m: 'midpoint', x: 'fix', s: 'symmetric', f: 'fillet', t: 'transform' };
+const MODES = {
+rect: ['rectMode', [['corner', 'Corner'], ['center', 'Center']]],
+circle: ['circleMode', [['center', 'Center'], ['3pt', '3-point']]],
+arc: ['arcMode', [['3pt', '3-point'], ['center', 'Center'], ['tangent', 'Tangent']]]
+};
+const MODE_HINTS = {
+'rect:center': 'Click the center, then a corner. Type a size, such as 40, 25, and press Enter. Shift+R switches back.',
+'circle:3pt': 'Click three points the circle passes through.',
+'arc:center': 'Click the center, the start, then the end. The arc runs the way you move.',
+'arc:tangent': 'Click the end of a line or arc, then where the arc ends. In a line chain, press A to switch to a tangent arc.'
+};
 const SET_TOOLS = { mirror: 1, linpat: 1, circpat: 1 };     // tools that act on a set of curves
 const HINTS = {
 select: 'Click to select, drag blue geometry to move it. Drag on empty space to box-select.',
-line: 'Click to place points. Double-click or Esc ends the chain. Shift turns snapping off.',
-rect: 'Click two opposite corners.',
-circle: 'Click the center, then a point on the circle.',
-arc: 'Click the start, the end, then a point on the arc.',
+line: 'Click to place points, or type a length and press Enter. A switches to a tangent arc. Double-click or Esc ends the chain.',
+rect: 'Click two opposite corners. Type a size, such as 40, 25, and press Enter.',
+circle: 'Click the center, then a point on the circle. Type a diameter and press Enter.',
+arc: 'Click the start, the end, then a point on the arc. After the second click you can type a radius.',
 ellipse: 'Click the center, the end of the long axis, then the width.',
 polygon: 'Set the number of sides, click the center, then a corner.',
 slot: 'Click the center of each round end, then the width.',
@@ -4185,7 +4398,8 @@ mouse: { sx: 0, sy: 0, in: false }, keys: { shift: false, space: false },
 press: null, pan: null, box: null, drag: null,
 colors: {}, glyphRects: [], dimRects: [], raf: 0, gridStep: 1,
 infer: null, lastLine: null, recent: [], example: false,
-opts: { sides: 6, fillet: 5, chamfer: 5, linCount: 3, linDx: 20, linDy: 0, circCount: 6, circAngle: 360 },
+opts: { sides: 6, fillet: 5, chamfer: 5, linCount: 3, linDx: 20, linDy: 0, circCount: 6, circAngle: 360, rectMode: 'corner', circleMode: 'center', arcMode: '3pt' },
+clip: null, lastPaste: null, typed: null, xf: { kind: 'move', dx: '10', dy: '0', ang: '90', k: '2', about: 'center', copy: false, detach: false },
 allItems: [], hiddenEnts: new Set(), lockedEnts: new Set(), theme: 'system', focusText: false
 };
 const PAGES = {
@@ -4392,7 +4606,7 @@ const bz = PS.entBeziers(d, e);
 if (bz.length) c.moveTo(bz[0].x0, bz[0].y0);
 for (const b of bz) c.bezierCurveTo(b.x1, b.y1, b.x2, b.y2, b.x3, b.y3);
 }
-else if (e.type === 'point') { /* drawn with the points */ }
+else if (e.type === 'point' || e.type === 'text') { /* drawn with the points, or as text */ }
 else {
 const p = d.points[e.c], s = d.points[e.s], en = d.points[e.e];
 const r = Math.hypot(s.x - p.x, s.y - p.y), a0 = Math.atan2(s.y - p.y, s.x - p.x);
@@ -4537,7 +4751,7 @@ const d = st.doc, e = d.entities[id];
 if (!e) { const p = d.points[id]; return [p.x, p.y]; }
 if (e.ref) { const c = S2W(st.w * (id === 'AX' ? 0.78 : 0.5), st.h * (id === 'AX' ? 0.5 : 0.22)); return id === 'AX' ? [c.x, 0] : [0, c.y]; }
 if (e.type === 'line') { const a = d.points[e.p1], b = d.points[e.p2]; return [(a.x + b.x) / 2, (a.y + b.y) / 2]; }
-if (e.type === 'point') { const p = d.points[e.p]; return [p.x, p.y]; }
+if (e.type === 'point' || e.type === 'text') { const p = d.points[e.p]; return [p.x, p.y]; }
 if (e.type === 'ellipse') return PS.ellipsePt(PS.ellipseSeg(d, e), Math.PI / 4);
 if (e.type === 'spline') { const bz = PS.entBeziers(d, e); return bz.length ? PS.cubicPt(bz[bz.length >> 1], 0.5) : [0, 0]; }
 const c = d.points[e.c], r = PS.entRadius(d, e);
@@ -4586,7 +4800,7 @@ const sizePx = id => {
 const e = d.entities[id] || d.entities[(d.points[id] || {}).owner];
 if (!e || e.ref) return 1e9;
 if (e.type === 'line') { const a = d.points[e.p1], b = d.points[e.p2]; return Math.hypot(b.x - a.x, b.y - a.y) * z; }
-if (e.type === 'point') return 1e9;
+if (e.type === 'point' || e.type === 'text') return 1e9;
 if (e.type === 'ellipse') return 2 * PS.ellipseSeg(d, e).rx * z;
 if (e.type === 'spline') { const a = d.points[e.pts[0]], b = d.points[e.pts[e.pts.length - 1]]; return Math.max(Math.hypot(b.x - a.x, b.y - a.y) * z, 43); }
 return 2 * PS.entRadius(d, e) * z;
@@ -4792,9 +5006,51 @@ const inf = st.infer;
 const cur = inf || S2W(st.mouse.sx, st.mouse.sy);
 setWorld(ctx);
 ctx.strokeStyle = C.under; ctx.lineWidth = 1.5 / z; ctx.setLineDash([]);
-if (st.tool === 'line' && ts.a) { ctx.beginPath(); ctx.moveTo(ts.a.x, ts.a.y); ctx.lineTo(cur.x, cur.y); ctx.stroke(); }
+const dashed = (x0, y0, x1, y1) => { ctx.setLineDash([4 / z, 4 / z]); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]); };
+const arcPath = g => { ctx.beginPath(); ctx.arc(g.cx, g.cy, g.r, g.a0, g.a1, false); ctx.stroke(); };
+const tg = st.typed ? typedGeom() : null, md = mode(st.tool);
+if (tg && !tg.error) {
+ctx.strokeStyle = C.infer; ctx.lineWidth = 2 / z;
+if (tg.kind === 'line') { ctx.beginPath(); ctx.moveTo(tg.a.x, tg.a.y); ctx.lineTo(tg.b.x, tg.b.y); ctx.stroke(); }
+else if (tg.kind === 'rect') ctx.strokeRect(tg.a.x, tg.a.y, tg.b.x - tg.a.x, tg.b.y - tg.a.y);
+else if (tg.kind === 'crect') ctx.strokeRect(tg.c.x - tg.hx, tg.c.y - tg.hy, 2 * tg.hx, 2 * tg.hy);
+else if (tg.kind === 'circle') { ctx.beginPath(); ctx.arc(tg.c.x, tg.c.y, tg.r, 0, TAU); ctx.stroke(); }
+else if (tg.kind === 'polygon') {
+const R = Math.hypot(tg.v.x - tg.c.x, tg.v.y - tg.c.y), a0 = Math.atan2(tg.v.y - tg.c.y, tg.v.x - tg.c.x), n = st.opts.sides;
+ctx.beginPath();
+for (let i = 0; i <= n; i++) { const a = a0 + i * TAU / n, x = tg.c.x + R * Math.cos(a), y = tg.c.y + R * Math.sin(a); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+ctx.stroke();
+}
+else if (tg.kind === 'arc') arcPath(tg.g);
+else if (tg.kind === 'start') { dashed(ts.a.x, ts.a.y, tg.b.x, tg.b.y); ctx.setLineDash([4 / z, 4 / z]); ctx.beginPath(); ctx.arc(ts.a.x, ts.a.y, Math.hypot(tg.b.x - ts.a.x, tg.b.y - ts.a.y), 0, TAU); ctx.stroke(); ctx.setLineDash([]); }
+ctx.strokeStyle = C.under; ctx.lineWidth = 1.5 / z;
+}
+else if (st.tool === 'line' && ts.a) { ctx.beginPath(); ctx.moveTo(ts.a.x, ts.a.y); ctx.lineTo(cur.x, cur.y); ctx.stroke(); }
+else if (st.tool === 'rect' && ts.a && md === 'center') {
+const hx = Math.abs(cur.x - ts.a.x), hy = Math.abs(cur.y - ts.a.y);
+ctx.strokeRect(ts.a.x - hx, ts.a.y - hy, 2 * hx, 2 * hy);
+dashed(ts.a.x - hx, ts.a.y - hy, ts.a.x + hx, ts.a.y + hy);
+}
 else if (st.tool === 'rect' && ts.a) { ctx.strokeRect(ts.a.x, ts.a.y, cur.x - ts.a.x, cur.y - ts.a.y); }
+else if (st.tool === 'circle' && ts.a && md === '3pt') {
+if (!ts.b) dashed(ts.a.x, ts.a.y, cur.x, cur.y);
+else { const g = arcThrough(ts.a, ts.b, cur); if (g) { ctx.beginPath(); ctx.arc(g.cx, g.cy, g.r, 0, TAU); ctx.stroke(); } else dashed(ts.a.x, ts.a.y, ts.b.x, ts.b.y); }
+}
 else if (st.tool === 'circle' && ts.a) { ctx.beginPath(); ctx.arc(ts.a.x, ts.a.y, Math.hypot(cur.x - ts.a.x, cur.y - ts.a.y), 0, TAU); ctx.stroke(); }
+else if (st.tool === 'arc' && ts.a && md === 'center') {
+if (!ts.b) {
+dashed(ts.a.x, ts.a.y, cur.x, cur.y);
+ctx.setLineDash([4 / z, 4 / z]); ctx.beginPath(); ctx.arc(ts.a.x, ts.a.y, Math.hypot(cur.x - ts.a.x, cur.y - ts.a.y), 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+} else {
+const g = centerArc(ts, cur);
+dashed(ts.a.x, ts.a.y, ts.b.x, ts.b.y);
+if (g) { arcPath(g); dashed(ts.a.x, ts.a.y, (g.swapped ? g.s : g.e).x, (g.swapped ? g.s : g.e).y); }
+}
+}
+else if (st.tool === 'arc' && ts.a && md === 'tangent') {
+const g = tangentArcThrough(ts.a, ts.a.T, cur);
+if (g) arcPath(g); else dashed(ts.a.x, ts.a.y, cur.x, cur.y);
+}
 else if (st.tool === 'arc' && ts.a) {
 if (!ts.b) { ctx.setLineDash([4 / z, 4 / z]); ctx.beginPath(); ctx.moveTo(ts.a.x, ts.a.y); ctx.lineTo(cur.x, cur.y); ctx.stroke(); ctx.setLineDash([]); }
 else {
@@ -4881,6 +5137,278 @@ let a1 = Math.atan2(e.y - cy, e.x - cx);
 if (a1 <= a0) a1 += TAU;
 return { cx, cy, r, a0, a1, s, e, swapped: !ccw };
 }
+function mode(tool) { const m = MODES[tool]; return m ? st.opts[m[0]] : null; }
+function mouseW() { return S2W(st.mouse.sx, st.mouse.sy); }
+function arcFrom(cx, cy, A, B, ccw) {
+const s = ccw ? A : B, e = ccw ? B : A;
+const r = Math.hypot(s.x - cx, s.y - cy), a0 = Math.atan2(s.y - cy, s.x - cx);
+let a1 = Math.atan2(e.y - cy, e.x - cx);
+if (a1 <= a0) a1 += TAU;
+return { cx, cy, r, a0, a1, s, e, swapped: !ccw };
+}
+function tangentArcThrough(P, T, E) {
+const nx = -T.y, ny = T.x, vx = E.x - P.x, vy = E.y - P.y;
+const dn = vx * nx + vy * ny, L2 = vx * vx + vy * vy;
+if (L2 < 1e-18 || Math.abs(dn) < 1e-6 * Math.sqrt(L2)) return null;
+const rs = L2 / (2 * dn);
+if (!(Math.abs(rs) < 1e7)) return null;
+return arcFrom(P.x + nx * rs, P.y + ny * rs, P, E, rs > 0);
+}
+function tangentStart(inf) {
+const d = st.doc, s = (inf.snaps || []).find(q => q.type === 'coincident');
+if (!s) return null;
+const uf = st.sys.uf, root = uf.find(s.pid);
+let best = null;
+const num = id => parseInt(id.slice(1), 10) || 0;
+for (const id in d.entities) {
+const e = d.entities[id];
+if (e.ref || (e.type !== 'line' && e.type !== 'arc')) continue;
+let T = null, end = null;
+if (e.type === 'line') {
+for (const [p, q] of [[e.p2, e.p1], [e.p1, e.p2]]) {
+if (uf.find(p) !== root) continue;
+const a = d.points[q], b = d.points[p], L = Math.hypot(b.x - a.x, b.y - a.y);
+if (L > 1e-9) { T = { x: (b.x - a.x) / L, y: (b.y - a.y) / L }; end = p; }
+break;
+}
+} else {
+const c = d.points[e.c];
+for (const [p, sg] of [[e.e, 1], [e.s, -1]]) {
+if (uf.find(p) !== root) continue;
+const q = d.points[p], rx = q.x - c.x, ry = q.y - c.y, L = Math.hypot(rx, ry) || 1;
+T = { x: -sg * ry / L, y: sg * rx / L }; end = p;
+break;
+}
+}
+if (T && (!best || num(id) > num(best.ent))) best = { x: d.points[end].x, y: d.points[end].y, pid: s.pid, ent: id, T, snaps: inf.snaps };
+}
+return best;
+}
+function centerArc(ts, w) {
+const c = ts.a, r = Math.hypot(ts.b.x - c.x, ts.b.y - c.y), ang = Math.atan2(w.y - c.y, w.x - c.x);
+const E = { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), snaps: w.snaps || [] };
+if (Math.hypot(E.x - ts.b.x, E.y - ts.b.y) < 1e-9) return null;
+return arcFrom(c.x, c.y, ts.b, E, (ts.sweep || 0) >= 0);
+}
+function typeSpec() {
+const t = st.tool, ts = st.ts, m = mode(t);
+if (st.mode !== 'sketch') return null;
+if (t === 'line' && ts.a) return { label: 'Length', ph: 'length, angle', kinds: ['length', 'angle'] };
+if (t === 'rect' && ts.a) return { label: m === 'center' ? 'Width, height' : 'Width, height', ph: 'w, h', kinds: ['length', 'length'] };
+if (t === 'circle' && m === 'center' && ts.a) return { label: 'Diameter', ph: '⌀', kinds: ['length'] };
+if (t === 'polygon' && ts.a) return { label: 'Diameter across corners', ph: '⌀', kinds: ['length'] };
+if (t === 'arc' && m === '3pt' && ts.a && ts.b) return { label: 'Radius', ph: 'R', kinds: ['length'] };
+if (t === 'arc' && m === 'tangent' && ts.a) return { label: 'Radius', ph: 'R', kinds: ['length'] };
+if (t === 'arc' && m === 'center' && ts.a && !ts.b) return { label: 'Radius', ph: 'R', kinds: ['length'] };
+return null;
+}
+function parseTyped(text, spec) {
+const parts = text.split(/[,;]/).map(x => x.trim());
+if (parts.length > spec.kinds.length) return { parts, error: 'Enter at most ' + spec.kinds.length + ' value' + (spec.kinds.length > 1 ? 's' : '') + ', separated by a comma' };
+const vals = [], vars = PS.evalVars(st.doc).vars;
+for (let i = 0; i < parts.length; i++) {
+if (!parts[i]) return { parts, error: 'Enter a number' };
+const r = PS.evalExpr(parts[i], { units: st.doc.units, kind: spec.kinds[i], vars });
+if (!r.ok) return { parts, error: r.error };
+if (spec.kinds[i] === 'length' && !(r.value > 1e-9)) return { parts, error: 'Enter a size greater than zero' };
+vals.push(r.value);
+}
+return { parts, vals };
+}
+function typedGeom() {
+const t = st.typed, ts = st.ts;
+if (!t || !t.vals) return null;
+const v = t.vals, m = mouseW(), tool = st.tool, md = mode(tool);
+const dirTo = (a, q, dflt) => Math.hypot(q.x - a.x, q.y - a.y) > 1e-9 ? Math.atan2(q.y - a.y, q.x - a.x) : dflt;
+if (tool === 'line' && ts.a) {
+const inf = st.infer, typedAng = v.length > 1;
+const ang = typedAng ? v[1] : dirTo(ts.a, inf || m, 0);
+return { kind: 'line', a: ts.a, b: { x: ts.a.x + v[0] * Math.cos(ang), y: ts.a.y + v[0] * Math.sin(ang), snaps: [] }, ang, typedAng };
+}
+if (tool === 'rect' && ts.a) {
+const w = v[0], h = v.length > 1 ? v[1] : v[0], sx = m.x >= ts.a.x ? 1 : -1, sy = m.y >= ts.a.y ? 1 : -1;
+if (md === 'center') return { kind: 'crect', c: ts.a, hx: w / 2, hy: h / 2 };
+return { kind: 'rect', a: ts.a, b: { x: ts.a.x + sx * w, y: ts.a.y + sy * h, snaps: [] } };
+}
+if (tool === 'circle' && ts.a) return { kind: 'circle', c: ts.a, r: v[0] / 2 };
+if (tool === 'polygon' && ts.a) { const R = v[0] / 2, ang = dirTo(ts.a, m, Math.PI / 2); return { kind: 'polygon', c: ts.a, v: { x: ts.a.x + R * Math.cos(ang), y: ts.a.y + R * Math.sin(ang), snaps: [] } }; }
+if (tool === 'arc' && md === '3pt' && ts.a && ts.b) {
+const r = v[0], mx = (ts.a.x + ts.b.x) / 2, my = (ts.a.y + ts.b.y) / 2, ch = Math.hypot(ts.b.x - ts.a.x, ts.b.y - ts.a.y) / 2;
+if (r < ch * (1 - 1e-12)) return { error: 'The radius must be at least ' + PS.fmtLen(ch, st.doc) + ' ' + st.doc.units + ', half the distance between the ends' };
+const ux = (ts.b.x - ts.a.x) / (2 * ch), uy = (ts.b.y - ts.a.y) / (2 * ch);
+let nx = -uy, ny = ux;
+if ((m.x - mx) * nx + (m.y - my) * ny < 0) { nx = -nx; ny = -ny; }
+const off = Math.sqrt(Math.max(0, r * r - ch * ch));
+const g = arcThrough(ts.a, ts.b, { x: mx + nx * (r - off), y: my + ny * (r - off) });
+return g ? { kind: 'arc', g } : null;
+}
+if (tool === 'arc' && md === 'tangent' && ts.a) {
+const r = v[0], T = ts.a.T, nx = -T.y, ny = T.x, side = ((m.x - ts.a.x) * nx + (m.y - ts.a.y) * ny) >= 0 ? 1 : -1;
+const cx = ts.a.x + nx * side * r, cy = ts.a.y + ny * side * r, ea = dirTo({ x: cx, y: cy }, m, 0);
+const E = { x: cx + r * Math.cos(ea), y: cy + r * Math.sin(ea), snaps: [] };
+if (Math.hypot(E.x - ts.a.x, E.y - ts.a.y) < 1e-9) return null;
+return { kind: 'arc', g: arcFrom(cx, cy, ts.a, E, side > 0) };
+}
+if (tool === 'arc' && md === 'center' && ts.a && !ts.b) {
+const ang = dirTo(ts.a, m, 0);
+return { kind: 'start', b: { x: ts.a.x + v[0] * Math.cos(ang), y: ts.a.y + v[0] * Math.sin(ang), snaps: [] } };
+}
+return null;
+}
+function outsidePos(lineId, inside) {
+const d = st.doc, e = d.entities[lineId], a = d.points[e.p1], b = d.points[e.p2];
+const L = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L;
+const side = inside && ((inside.x - (a.x + b.x) / 2) * nx + (inside.y - (a.y + b.y) / 2) * ny) > 0 ? -1 : 1;
+return { t: 0, n: side * 22 / st.view.zoom, k: 0 };
+}
+function radPos(r) { const k = r + 14 / st.view.zoom; return { x: k * 0.7071, y: k * 0.7071 }; }
+function typedDim(con, text) {
+const id = PS.addDimension(st.doc, con);
+if (text && !PS.isPlainNumber(text) && !st.doc.constraints[id].driven) PS.setDimInput(st.doc, id, text);
+return id;
+}
+function addRectAt(x1, y1, x2, y2, snapsA, snapsB) {
+const d = st.doc, R = PS.addRect(d, x1, y1, x2, y2);
+applyPointSnaps(R.p1, snapsA); applyPointSnaps(R.p2, snapsB);
+return R;
+}
+function addCenterRect(c, hx, hy, corner) {
+const d = st.doc, E = d.entities;
+const R = PS.addRect(d, c.x - hx, c.y - hy, c.x + hx, c.y + hy);
+const dg = PS.addLine(d, c.x - hx, c.y - hy, c.x + hx, c.y + hy);
+E[dg].construction = true;
+PS.addCon(d, { type: 'coincident', refs: [E[dg].p1, R.p1] });
+PS.addCon(d, { type: 'coincident', refs: [E[dg].p2, R.p2] });
+const cp = PS.addPointEnt(d, c.x, c.y), cpid = E[cp].p;
+PS.addCon(d, { type: 'midpoint', refs: [cpid, dg] });
+applyPointSnaps(cpid, c.snaps);
+if (corner && corner.snaps && corner.snaps.length) {
+const pts = [E[R.lines[0]].p1, E[R.lines[0]].p2, E[R.lines[1]].p2, E[R.lines[2]].p2];
+let best = pts[0], bd = Infinity;
+for (const p of pts) { const q = d.points[p], dd = Math.hypot(q.x - corner.x, q.y - corner.y); if (dd < bd) { bd = dd; best = p; } }
+applyPointSnaps(best, corner.snaps);
+}
+return R;
+}
+function addArcFrom(g) {
+const d = st.doc, id = PS.addArc(d, g.cx, g.cy, g.s.x, g.s.y, g.e.x, g.e.y), e = d.entities[id];
+applyPointSnaps(e.s, g.s.snaps); applyPointSnaps(e.e, g.e.snaps);
+return id;
+}
+function addTangentArc(g, start) {
+const d = st.doc, id = PS.addArc(d, g.cx, g.cy, g.s.x, g.s.y, g.e.x, g.e.y), e = d.entities[id];
+const sp = g.swapped ? e.e : e.s, ep = g.swapped ? e.s : e.e;
+PS.addCon(d, { type: 'coincident', refs: [sp, start.pid] });
+PS.addCon(d, { type: 'tangent', refs: [start.ent, id] });
+applyPointSnaps(ep, (g.swapped ? g.s : g.e).snaps);
+return { id, end: ep };
+}
+function endChainArc() { if (st.chainMode) { st.opts.arcMode = st.chainMode; st.chainMode = null; } }
+function afterArc(endPid) {
+const d = st.doc, p = d.points[endPid];
+endChainArc();
+if (st.ts.chain) { st.tool = 'line'; st.ts = { a: { x: p.x, y: p.y, snaps: [{ type: 'coincident', pid: endPid }] } }; syncToolbar(); syncToolOpts(); }
+else st.ts = {};
+st.infer = null;
+}
+function applyTyped() {
+const t = st.typed, d = st.doc, ts = st.ts;
+if (!t) return false;
+if (t.error || !t.vals) { toast(esc(t.error || 'Enter a number') + '.', true); return false; }
+const g = typedGeom();
+if (!g || g.error) { toast(esc(g && g.error ? g.error : 'That size does not work here') + '.', true); return false; }
+const parts = t.parts;
+closeTypein();
+if (g.kind === 'start') { ts.b = g.b; ts.rText = parts[0]; ts.sweep = 0; ts.lastAng = Math.atan2(g.b.y - ts.a.y, g.b.x - ts.a.x); requestDraw(); return true; }
+if (g.kind === 'line') {
+const id = PS.addLine(d, g.a.x, g.a.y, g.b.x, g.b.y), e = d.entities[id];
+applyPointSnaps(e.p1, g.a.snaps);
+if (!g.typedAng) applyLineSnaps(id, st.infer && st.infer.lineSnaps);
+const q = PS.normAng(g.ang) / (Math.PI / 2), k = Math.round(q);
+if (Math.abs(q - k) < 1e-9) PS.addConIfUseful(d, { type: k % 2 ? 'vertical' : 'horizontal', refs: [id] });
+PS.trySolve(d);
+typedDim({ type: 'distance', refs: [id], mode: 'aligned', pos: { t: 0, n: 22 / st.view.zoom, k: 0 } }, parts[0]);
+PS.trySolve(d);
+commit();
+const p2 = d.points[e.p2];
+st.ts = { a: { x: p2.x, y: p2.y, snaps: [{ type: 'coincident', pid: e.p2 }] } };
+st.infer = null;
+return true;
+}
+if (g.kind === 'rect' || g.kind === 'crect') {
+const R = g.kind === 'rect' ? addRectAt(g.a.x, g.a.y, g.b.x, g.b.y, g.a.snaps, []) : addCenterRect(g.c, g.hx, g.hy, null);
+PS.trySolve(d);
+const ctr = g.kind === 'rect' ? { x: (g.a.x + g.b.x) / 2, y: (g.a.y + g.b.y) / 2 } : g.c;
+typedDim({ type: 'distance', refs: [R.lines[0]], mode: 'aligned', pos: outsidePos(R.lines[0], ctr) }, parts[0]);
+if (parts.length > 1) typedDim({ type: 'distance', refs: [R.lines[1]], mode: 'aligned', pos: outsidePos(R.lines[1], ctr) }, parts[1]);
+else PS.addConIfUseful(d, { type: 'equal', refs: [R.lines[0], R.lines[1]] });
+PS.trySolve(d);
+st.ts = {}; st.infer = null;
+commit();
+return true;
+}
+if (g.kind === 'circle') {
+const id = PS.addCircle(d, g.c.x, g.c.y, g.r);
+applyPointSnaps(d.entities[id].c, g.c.snaps);
+PS.trySolve(d);
+typedDim({ type: 'diameter', refs: [id], pos: radPos(g.r) }, parts[0]);
+PS.trySolve(d);
+st.ts = {}; st.infer = null;
+commit();
+return true;
+}
+if (g.kind === 'polygon') {
+const pg = PS.addPolygon(d, g.c.x, g.c.y, g.v.x, g.v.y, st.opts.sides);
+applyPointSnaps(pg.center, g.c.snaps);
+PS.trySolve(d);
+typedDim({ type: 'diameter', refs: [pg.circle], pos: radPos(g.v ? Math.hypot(g.v.x - g.c.x, g.v.y - g.c.y) : 1) }, parts[0]);
+PS.trySolve(d);
+st.ts = {}; st.infer = null;
+commit();
+return true;
+}
+if (g.kind === 'arc') {
+let id, end = null;
+if (st.tool === 'arc' && mode('arc') === 'tangent') { const r = addTangentArc(g.g, ts.a); id = r.id; end = r.end; }
+else id = addArcFrom(g.g);
+PS.trySolve(d);
+typedDim({ type: 'radius', refs: [id], pos: radPos(g.g.r) }, parts[0]);
+PS.trySolve(d);
+if (end) afterArc(end); else { st.ts = {}; st.infer = null; }
+commit();
+return true;
+}
+return false;
+}
+function openTypein(ch) {
+const spec = typeSpec();
+if (!spec) return false;
+const box = $('typein'), inp = $('typein-i');
+$('typein-l').textContent = spec.label;
+inp.placeholder = spec.ph;
+inp.value = ch || '';
+box.hidden = false;
+box.style.left = Math.max(8, Math.min(st.w - 150, st.mouse.sx + 18)) + 'px';
+box.style.top = Math.max(8, Math.min(st.h - 52, st.mouse.sy + 16)) + 'px';
+inp.focus();
+const n = inp.value.length; inp.setSelectionRange(n, n);
+onTypeInput();
+return true;
+}
+function onTypeInput() {
+const spec = typeSpec(), inp = $('typein-i');
+if (!spec) { closeTypein(); return; }
+const text = inp.value;
+st.typed = text.trim() ? Object.assign({ text }, parseTyped(text, spec)) : null;
+inp.classList.toggle('bad', !!(st.typed && st.typed.error));
+requestDraw();
+}
+function closeTypein() {
+st.typed = null;
+const box = $('typein');
+if (box && !box.hidden) { box.hidden = true; $('typein-i').classList.remove('bad'); if (document.activeElement === $('typein-i')) cv.focus({ preventScroll: true }); }
+requestDraw();
+}
 function entDist(e, w) {
 const d = st.doc;
 if (e.type === 'line') {
@@ -4889,7 +5417,7 @@ let t = ((w.x - a.x) * dx + (w.y - a.y) * dy) / L2;
 if (!e.ref) t = Math.max(0, Math.min(1, t));
 return Math.hypot(w.x - a.x - t * dx, w.y - a.y - t * dy);
 }
-if (e.type === 'point') return Infinity;
+if (e.type === 'point' || e.type === 'text') return Infinity;
 if (e.type === 'ellipse') return PS.segDist(PS.ellipseSeg(d, e), w.x, w.y);
 if (e.type === 'spline') { let m = Infinity; for (const b of PS.entBeziers(d, e)) m = Math.min(m, PS.segDist(b, w.x, w.y)); return m; }
 const c = d.points[e.c], r = PS.entRadius(d, e), dr = Math.abs(Math.hypot(w.x - c.x, w.y - c.y) - r);
@@ -5133,9 +5661,10 @@ else if (s.rim) PS.addConIfUseful(st.doc, { type: 'pointOn', refs: [s.pid, id] }
 else PS.addConIfUseful(st.doc, { type: s.type, refs: [id, s.ent] });
 }
 }
-function cancelTool() { st.ts = {}; st.infer = null; st.drag = null; st.press = null; st.box = null; closeDimEdit(); }
+function cancelTool() { st.ts = {}; st.infer = null; st.drag = null; st.press = null; st.box = null; closeDimEdit(); if ($('typein')) closeTypein(); }
 function setTool(name) {
 if (name === 'construction') { toggleConstruction(); return; }
+if (name === 'transform') { transformDialog(); return; }
 if (st.mode === 'clean' && name !== 'select') setMode('sketch');
 if (CON_TOOLS[name]) {
 const picks = Array.from(st.sel).filter(r => r[0] === 'p' || r[0] === 'e').map(r => r.slice(2));
@@ -5153,6 +5682,7 @@ if (r.con && picks.length <= want) { if (applyCon(r.con)) st.sel.clear(); queueP
 }
 const selEnts = selectedEntities();
 cancelTool();
+endChainArc();
 st.tool = name;
 if (name !== 'select') st.sel.clear();
 if (name === 'dimension') st.ts.picks = [];
@@ -5314,6 +5844,7 @@ function local(e) { const r = cv.getBoundingClientRect(); return [e.clientX - r.
 function onDown(e) {
 const [sx, sy] = local(e);
 st.mouse = { sx, sy, in: true };
+if (!$('typein').hidden) closeTypein();
 cv.focus({ preventScroll: true });
 if (editing) { const ok = setDim(editing, $('dimedit').value); if (ok) closeDimEdit(); return; }
 try { cv.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
@@ -5380,7 +5911,7 @@ queuePanels();
 } else if (pr.mode === 'drag') dragEnd();
 else if (pr.mode === 'dim') commit();
 else if (pr.mode === 'box') { boxSelect(st.box, pr.shift); st.box = null; queuePanels(); }
-} else if (st.downAt && Math.hypot(sx - st.downAt.sx, sy - st.downAt.sy) > 8 && st.ts.a && (st.tool === 'line' || st.tool === 'rect' || st.tool === 'circle')) {
+} else if (st.downAt && Math.hypot(sx - st.downAt.sx, sy - st.downAt.sy) > 8 && st.ts.a && (st.tool === 'line' || st.tool === 'rect' || (st.tool === 'circle' && mode('circle') === 'center'))) {
 toolClick(sx, sy);   // press, drag, release
 if (st.tool === 'line') { st.ts = {}; st.infer = null; }
 }
@@ -5493,8 +6024,17 @@ const w = S2W(sx, sy), ts = st.ts;
 st.infer = null;
 if (st.tool === 'line') st.infer = ts.a ? inferLineEnd(ts.a, w) : inferPoint(w);
 else if (st.tool === 'rect') st.infer = inferPoint(w);
-else if (st.tool === 'circle') st.infer = ts.a ? inferRim(ts.a, w) : inferPoint(w);
-else if (st.tool === 'arc') st.infer = ts.b ? null : inferPoint(w);
+else if (st.tool === 'circle') st.infer = ts.a && mode('circle') === 'center' ? inferRim(ts.a, w) : inferPoint(w);
+else if (st.tool === 'arc') {
+const md = mode('arc');
+if (md === 'center' && ts.a && ts.b) {
+const ang = Math.atan2(w.y - ts.a.y, w.x - ts.a.x);
+ts.sweep = (ts.sweep || 0) + PS.wrapPi(ang - (ts.lastAng === undefined ? ang : ts.lastAng));
+ts.lastAng = ang;
+st.infer = inferPoint(w);
+} else if (md === 'center' || md === 'tangent') st.infer = inferPoint(w);
+else st.infer = ts.b ? null : inferPoint(w);
+}
 else if (st.tool === 'point' || st.tool === 'spline' || st.tool === 'polygon' || st.tool === 'text') st.infer = inferPoint(w);
 else if (st.tool === 'ellipse' || st.tool === 'slot') st.infer = ts.b ? null : inferPoint(w);
 else {
@@ -5590,9 +6130,18 @@ st.infer = null;
 } else if (st.tool === 'rect') {
 if (!ts.a) { ts.a = inf; return; }
 if (Math.abs(inf.x - ts.a.x) < 1e-6 || Math.abs(inf.y - ts.a.y) < 1e-6) return;
-const R = PS.addRect(d, ts.a.x, ts.a.y, inf.x, inf.y);
-applyPointSnaps(R.p1, ts.a.snaps);
-applyPointSnaps(R.p2, inf.snaps);
+if (mode('rect') === 'center') addCenterRect(ts.a, Math.abs(inf.x - ts.a.x), Math.abs(inf.y - ts.a.y), inf);
+else addRectAt(ts.a.x, ts.a.y, inf.x, inf.y, ts.a.snaps, inf.snaps);
+PS.trySolve(d);
+st.ts = {}; st.infer = null;
+commit();
+} else if (st.tool === 'circle' && mode('circle') === '3pt') {
+if (!ts.a) { ts.a = inf; return; }
+if (!ts.b) { if (far(ts.a, inf)) ts.b = inf; return; }
+const g = arcThrough(ts.a, ts.b, inf);
+if (!g) { toast('Those three points are in a straight line. Click a point off the line.'); return; }
+const id = PS.addCircle(d, g.cx, g.cy, g.r);
+for (const q of [ts.a, ts.b, inf]) for (const sn of q.snaps || []) if (sn.type === 'coincident') PS.addConIfUseful(d, { type: 'pointOn', refs: [sn.pid, id] });
 PS.trySolve(d);
 st.ts = {}; st.infer = null;
 commit();
@@ -5605,6 +6154,32 @@ applyPointSnaps(d.entities[id].c, ts.a.snaps);
 applyLineSnaps(id, inf.lineSnaps);
 PS.trySolve(d);
 st.ts = {}; st.infer = null;
+commit();
+} else if (st.tool === 'arc' && mode('arc') === 'center') {
+if (!ts.a) { ts.a = inf; return; }
+if (!ts.b) { if (far(ts.a, inf)) { ts.b = inf; ts.sweep = 0; ts.lastAng = Math.atan2(inf.y - ts.a.y, inf.x - ts.a.x); } return; }
+const g = centerArc(ts, inf);
+if (!g) return;
+const id = PS.addArc(d, g.cx, g.cy, g.s.x, g.s.y, g.e.x, g.e.y), e = d.entities[id];
+applyPointSnaps(e.c, ts.a.snaps);
+applyPointSnaps(g.swapped ? e.e : e.s, ts.b.snaps);
+applyPointSnaps(g.swapped ? e.s : e.e, (inf.snaps || []).filter(q => q.type === 'coincident'));
+PS.trySolve(d);
+if (ts.rText) { typedDim({ type: 'radius', refs: [id], pos: radPos(g.r) }, ts.rText); PS.trySolve(d); }
+st.ts = {}; st.infer = null;
+commit();
+} else if (st.tool === 'arc' && mode('arc') === 'tangent') {
+if (!ts.a) {
+const t0 = tangentStart(inf);
+if (!t0) { toast('Start a tangent arc on the end of a line or arc.'); return; }
+st.ts = { a: t0 };
+return;
+}
+const g = tangentArcThrough(ts.a, ts.a.T, inf);
+if (!g) { toast('Move to one side: a tangent arc cannot end straight ahead.'); return; }
+const r = addTangentArc(g, ts.a);
+PS.trySolve(d);
+afterArc(r.end);
 commit();
 } else if (st.tool === 'arc') {
 if (!ts.a) { ts.a = inf; return; }
@@ -5711,6 +6286,8 @@ else setHint(r.need + '.');
 }
 }
 function toolHint() {
+const mh = MODE_HINTS[st.tool + ':' + mode(st.tool)];
+if (mh) return mh;
 if (HINTS[st.tool]) return HINTS[st.tool];
 const r = PS.makeConstraint(st.doc, st.tool, []);
 return r.need ? r.need + '. Esc returns to Select.' : '';
@@ -5808,6 +6385,11 @@ const u = st.doc.units;
 const num = (key, label, val, unit) => '<label for="o-' + key + '">' + label + '</label><input class="field" id="o-' + key + '" data-opt="' + key + '" value="' + val + '" autocomplete="off">' + (unit ? '<span class="lab">' + unit + '</span>' : '');
 let h = '';
 if (st.mode !== 'sketch') h = '';
+else if (MODES[t]) {
+const [k, list] = MODES[t];
+h = '<div class="seg small" role="group" aria-label="Drawing mode">' + list.map(([v, label]) => '<button type="button" data-mode="' + k + ':' + v + '" aria-pressed="' + (o[k] === v) + '">' + label + '</button>').join('') + '</div>' +
+'<span class="lab">Shift+' + (t === 'rect' ? 'R' : t === 'circle' ? 'C' : 'A') + ' switches</span>';
+}
 else if (t === 'polygon') h = num('sides', 'Sides', o.sides);
 else if (t === 'fillet') h = num('fillet', 'Radius', lenText(o.fillet), u);
 else if (t === 'chamfer') h = num('chamfer', 'Distance', lenText(o.chamfer), u);
@@ -5853,6 +6435,15 @@ if (st.tool === 'linpat' && st.ts.ready) st.ts.pv = linGhost();
 st.mouse.in = true;
 requestDraw();
 }
+function setMode2(key, val) {
+st.opts[key] = val;
+st.ts = {}; st.infer = null; hintOverride = null;
+closeTypein(); syncToolOpts(); requestDraw();
+}
+function cycleMode() {
+const [key, list] = MODES[st.tool], i = list.findIndex(m => m[0] === st.opts[key]);
+setMode2(key, list[(i + 1) % list.length][0]);
+}
 function setNext() {
 const ts = st.ts;
 if (!SET_TOOLS[st.tool] || ts.ready || !ts.ids || !ts.ids.length) return;
@@ -5883,7 +6474,7 @@ let h = '<div class="sec"><h2>Document</h2>' +
 '<div class="row"><label for="f-prec">Decimals</label><select class="field" id="f-prec" data-doc="precision">' + [0, 1, 2, 3, 4].map(x => opt(x, x, d.precision)).join('') + '</select></div>' +
 '<div class="row"><label for="f-page">Page</label><select class="field" id="f-page" data-doc="page">' + opt('none', 'None', pv) + Object.keys(PAGES).map(k => opt(k, PAGES[k][0], pv)).join('') + '</select></div>';
 if (pg.on && pg.preset === 'custom') h += '<div class="row"><span class="lab">Size</span><div class="pair"><input class="field" id="f-pw" data-doc="pw" value="' + PS.fmtNum(pg.w / u, Math.max(d.precision, 2)) + '" aria-label="Page width" autocomplete="off"><span class="lab">×</span><input class="field" id="f-ph" data-doc="ph" value="' + PS.fmtNum(pg.h / u, Math.max(d.precision, 2)) + '" aria-label="Page height" autocomplete="off"></div></div>';
-h += '<div class="row"><label for="f-theme">Theme</label><select class="field" id="f-theme" data-theme-sel="1">' + opt('system', 'Match system', st.theme) + opt('light', 'Light', st.theme) + opt('dark', 'Dark', st.theme) + '</select></div>' +
+h += '<div class="row"><label for="f-theme">Theme</label><select class="field" id="f-theme" data-theme-sel="1">' + opt('system', 'System', st.theme) + opt('light', 'Light', st.theme) + opt('dark', 'Dark', st.theme) + '</select></div>' +
 '<label class="check"><input type="checkbox" id="f-grid" data-doc="grid"' + (d.grid.show ? ' checked' : '') + '> Show grid</label>' +
 '<label class="check"><input type="checkbox" id="f-snap" data-doc="snap"' + (d.grid.snap ? ' checked' : '') + '> Snap to grid</label></div>';
 h += layersHtml();
@@ -6009,7 +6600,8 @@ if (n.c) parts.push(n.c + ' constraint' + (n.c > 1 ? 's' : ''));
 if (n.s) parts.push(n.s + ' shape' + (n.s > 1 ? 's' : ''));
 return '<div class="sec"><h2>Selection</h2><p class="kv">' + parts.join(', ') + '</p>' +
 '<p class="hint" style="margin-top:8px">Pick a constraint in the toolbar to apply it to the selection, or Mirror, Offset or a pattern to copy it. <kbd>Delete</kbd> removes curves and constraints.</p>' +
-(n.e || n.c ? '<div class="btnrow"><button class="btn small" type="button" data-act="delete">Delete</button></div>' : '') + '</div>';
+'<div class="btnrow">' + (n.e || n.s ? '<button class="btn small" type="button" data-act="transform">Transform…</button><button class="btn small" type="button" data-act="duplicate">Duplicate</button>' : '') +
+(n.e || n.c ? '<button class="btn small" type="button" data-act="delete">Delete</button>' : '') + '</div></div>';
 }
 const r = sel[0], id = r.slice(2);
 if (r[0] === 'c') {
@@ -6060,13 +6652,13 @@ if (e.type === 'arc') h += ptRow('Start', e.s, 'a') + ptRow('End', e.e, 'b');
 }
 h += '<label class="check" style="margin-top:8px"><input type="checkbox" id="f-constr" data-act="construction"' + (e.construction ? ' checked' : '') + '> Construction geometry</label>' +
 '<p style="margin:8px 0 0">' + (st.ana.entFree(id) ? '<span class="pill under">Under-defined</span>' : '<span class="pill ok">Fully defined</span>') + '</p>' +
-'<div class="btnrow"><button class="btn small" type="button" data-act="delete">Delete</button></div></div>';
+'<div class="btnrow"><button class="btn small" type="button" data-act="transform">Transform…</button><button class="btn small" type="button" data-act="duplicate">Duplicate</button><button class="btn small" type="button" data-act="delete">Delete</button></div></div>';
 return h + conListHtml(consOf(id), 'Constraints');
 }
 function noSelHtml() {
 const d = st.doc;
 let nE = 0, nC = 0, nD = 0;
-for (const id in d.entities) if (!d.entities[id].ref) nE++;
+for (const id in d.entities) { const e = d.entities[id]; if (!e.ref && e.type !== 'point' && e.type !== 'text') nE++; }
 for (const id in d.constraints) { if (PS.isDim(d.constraints[id])) nD++; else nC++; }
 const bad = Array.from(st.ana.conflict).concat(Array.from(st.ana.redundant));
 return '<div class="sec"><h2>Sketch</h2><p style="margin:0 0 8px">' + dofPill() + '</p>' +
@@ -6087,13 +6679,13 @@ return '<input type="color" id="f-' + idp + 'col" data-style="' + key + '" data-
 function colorRow(key, label, val, idp) {
 const none = val === 'none';
 return '<div class="row tight"><label for="f-' + idp + 'mode">' + label + '</label><div class="pair">' +
-'<select class="field" id="f-' + idp + 'mode" data-style="' + key + '" data-kind="mode" style="flex:0 0 66px">' + opt('none', 'None', none ? 'none' : 'solid') + opt('solid', 'Solid', none ? 'none' : 'solid') + '</select>' +
+'<select class="field" id="f-' + idp + 'mode" data-style="' + key + '" data-kind="mode" style="flex:0 0 80px">' + opt('none', 'None', none ? 'none' : 'solid') + opt('solid', 'Solid', none ? 'none' : 'solid') + '</select>' +
 colorInputs(key, label, val, idp, none) + '</div></div>';
 }
 function fillRows(rec) {
 const mode = rec.fill === 'none' ? 'none' : rec.grad ? 'grad' : 'solid';
 let h = '<div class="row tight"><label for="f-flmode">Fill</label><div class="pair">' +
-'<select class="field" id="f-flmode" data-style="fill" data-kind="mode" style="flex:0 0 66px">' + opt('none', 'None', mode) + opt('solid', 'Solid', mode) + opt('grad', 'Gradient', mode) + '</select>' +
+'<select class="field" id="f-flmode" data-style="fill" data-kind="mode" style="flex:0 0 80px">' + opt('none', 'None', mode) + opt('solid', 'Solid', mode) + opt('grad', 'Gradient', mode) + '</select>' +
 colorInputs('fill', 'Fill', rec.fill, 'fl', mode === 'none') + '</div></div>';
 if (mode === 'grad') {
 h += '<div class="row tight"><label for="f-g2hex">To</label><div class="pair"><span class="spc"></span>' + colorInputs('grad', 'Gradient end', rec.grad.to, 'g2', false) + '</div></div>' +
@@ -6115,7 +6707,8 @@ const keys = selectedShapeKeys(), units = arrangeUnits(keys);
 const tops = new Set(keys.map(k => PS.topGroup(d, d.shapes[k].group)));
 const oneGroup = tops.size === 1 && !tops.has(null) && keys.length > 1;
 const title = oneGroup ? 'Group' : many ? shapes.length + ' items' : s0.kind === 'face' ? (s0.face.own ? 'Shape' : 'Hole') : s0.kind === 'path' ? 'Open path' : 'Text';
-let h = '<div class="sec"><h2>' + title + '</h2>';
+const lone = !many && s0.kind === 'text';
+let h = lone ? '' : '<div class="sec"><h2>' + title + '</h2>';
 if (oneGroup) h += '<p class="hint">' + keys.length + ' items that move and stack together. Ungroup to arrange them one by one.</p>';
 else if (!many && s0.kind === 'face') h += '<p class="hint">Closed region bounded by ' + s0.rec.ents.length + (s0.rec.ents.length === 1 ? ' curve' : ' curves') + '. Its styling stays with it when dimensions change.</p>';
 else if (!many && s0.kind === 'path') h += '<p class="hint">Open chain: outline only. Close the loop to make it fillable.</p>';
@@ -6123,7 +6716,7 @@ if (nested.length) {
 const own = nested.every(s => s.face.own);
 h += '<div class="row" style="margin-top:8px"><label for="f-role">Inside loop</label><select class="field" id="f-role" data-act="role">' + opt('hole', 'Hole in the outer shape', own ? 'own' : 'hole') + opt('own', 'Separate shape', own ? 'own' : 'hole') + '</select></div>';
 }
-h += '</div>';
+if (!lone) h += '</div>';
 if (texts.length === 1 && !many) h += textHtml(texts[0]);
 if (faces.length) h += '<div class="sec"><h2>Fill</h2>' + fillRows(faces[0].rec) + swatchHtml('fill') + (texts.length ? '<p class="hint" style="margin-top:6px">Also sets the color of the selected text.</p>' : '') + '</div>';
 else if (texts.length) h += '<div class="sec"><h2>Text color</h2><div class="row tight"><label for="f-tchex">Color</label><div class="pair">' + colorInputs('fill', 'Text', texts[0].rec.fill, 'tc', false) + '</div></div>' + swatchHtml('fill') + '</div>';
@@ -6156,7 +6749,9 @@ h += '<div class="sec"><h2>Arrange</h2>' +
 '<button class="btn small" type="button" data-act="backward" title="Send backward one step (Ctrl+[)">Send backward</button>' +
 '<button class="btn small" type="button" data-act="back" title="Send to back (Ctrl+Shift+[)">Send to back</button>' +
 '<button class="btn small" type="button" data-act="group" title="Group (Ctrl+G)"' + (units < 2 ? ' disabled' : '') + '>' + iconSvg('group') + 'Group</button>' +
-'<button class="btn small" type="button" data-act="ungroup" title="Ungroup (Ctrl+Shift+G)"' + (ungroupable ? '' : ' disabled') + '>' + iconSvg('ungroup') + 'Ungroup</button></div>' +
+'<button class="btn small" type="button" data-act="ungroup" title="Ungroup (Ctrl+Shift+G)"' + (ungroupable ? '' : ' disabled') + '>' + iconSvg('ungroup') + 'Ungroup</button>' +
+'<button class="btn small" type="button" data-act="transform" title="Move, rotate or scale by exact amounts (Shift+T)">' + iconSvg('transform') + 'Transform…</button>' +
+'<button class="btn small" type="button" data-act="duplicate" title="Duplicate (Ctrl+D)">Duplicate</button></div>' +
 '<div class="aligns" role="group" aria-label="Align and distribute">' + ALIGNS.map(a => '<button class="tb" type="button" data-align="' + a[0] + '" title="' + a[1] + '" aria-label="' + a[1] + '"' + (off(a[0]) ? ' disabled' : '') + '>' + iconSvg(a[0]) + '</button>').join('') + '</div>' +
 '<p class="hint" style="margin-top:6px">' + (units < 2 ? (pageOn ? 'One item aligns to the page.' : 'Select two or more to align them, or turn on a page to align to it.') : units < 3 ? 'Distributing needs three or more.' : 'Distributing keeps the outermost two in place.') + '</p></div>';
 return h;
@@ -6406,7 +7001,11 @@ for (const k in d.shapes) if (PS.topGroup(d, d.shapes[k].group) === gs.dataset.g
 queuePanels(); requestDraw(); return;
 }
 const lr = t.closest('[data-layer]');
-if (lr && !t.closest('input, button')) { d.activeLayer = lr.dataset.layer; autosave(); queuePanels(); return; }
+if (lr && !t.closest('input, button')) {
+d.activeLayer = lr.dataset.layer; autosave();
+for (const li of $('left').querySelectorAll('li.layer')) li.classList.toggle('active', li.dataset.layer === d.activeLayer);
+return;
+}
 const sh = t.closest('[data-shape]');
 if (sh) { if (!e.shiftKey) st.sel.clear(); st.sel.add('s:' + sh.dataset.shape); queuePanels(); requestDraw(); return; }
 const con = t.closest('[data-con]');
@@ -6415,6 +7014,8 @@ const act = t.closest('button[data-act]');
 if (!act) return;
 const a = act.dataset.act;
 if (a === 'delete') deleteSelection();
+else if (a === 'transform') transformDialog();
+else if (a === 'duplicate') duplicateSel();
 else if (a === 'addlayer') { PS.addLayer(d); commit(); }
 else if (a === 'group') groupSel();
 else if (a === 'ungroup') ungroupSel();
@@ -6496,6 +7097,160 @@ const con = e.target.closest && e.target.closest('[data-con]');
 const sh = e.target.closest && e.target.closest('[data-shape]');
 const h = con ? 'c:' + con.dataset.con : sh ? 's:' + sh.dataset.shape : null;
 if (h !== st.hover) { st.hover = h; requestDraw(); }
+}
+const CLIP_KEY = STORE + '.clip';
+function selectionIds() {
+const d = st.doc, ids = new Set(selectedEntities());
+const keys = new Set(selectedShapeKeys());
+if (keys.size) for (const [id] of PS.itemEntities(st.topo, st.allItems.filter(i => keys.has(i.key)))) ids.add(id);
+return Array.from(ids).filter(id => d.entities[id] && !d.entities[id].ref);
+}
+function countText(ids) {
+const d = st.doc;
+let c = 0, t = 0;
+for (const id of ids) { if (d.entities[id].type === 'text') t++; else c++; }
+const parts = [];
+if (c) parts.push(c + (c === 1 ? ' curve' : ' curves'));
+if (t) parts.push(t + (t === 1 ? ' text' : ' texts'));
+return parts.join(' and ');
+}
+function copySel(cut) {
+const ids = selectionIds();
+if (!ids.length) { toast('Select curves, shapes or text, then press Ctrl+' + (cut ? 'X' : 'C') + '.'); return false; }
+const clip = PS.clipEntities(st.doc, ids);
+if (!clip) return false;
+st.clip = clip; st.lastPaste = null;
+try { localStorage.setItem(CLIP_KEY, JSON.stringify(clip)); } catch (e) { /* this tab only */ }
+const what = countText(ids);
+if (cut) { deleteSelection(); toast('Cut ' + what + '. Ctrl+V pastes at the pointer.'); }
+else toast('Copied ' + what + '. Ctrl+V pastes at the pointer. To paste into PowerPoint, use Copy as image.');
+return true;
+}
+function readClip() {
+if (st.clip) return st.clip;
+try { const c = JSON.parse(localStorage.getItem(CLIP_KEY) || 'null'); if (c && c.app === 'PrecisionSketch-clip') return c; } catch (e) { /* none */ }
+return null;
+}
+function nudge() { const g = st.gridStep || 1; return Math.max(g, Math.round(24 / st.view.zoom / g) * g); }
+function pasteSel() {
+const clip = readClip();
+if (!clip) { toast('Nothing has been copied yet. Select something and press Ctrl+C.'); return; }
+const b = clip.bbox || [0, 0, 0, 0], cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2;
+let dx, dy;
+const lp = st.lastPaste, still = lp && lp.sx === st.mouse.sx && lp.sy === st.mouse.sy;
+if (st.mouse.in && !still) {
+const w = S2W(st.mouse.sx, st.mouse.sy);
+let tx = w.x, ty = w.y;
+if (st.doc.grid.snap) { const g = st.gridStep; tx = Math.round(tx / g) * g; ty = Math.round(ty / g) * g; }
+dx = tx - cx; dy = ty - cy;
+} else {
+const s = nudge(), base = lp ? lp.d : [0, 0];
+dx = base[0] + s; dy = base[1] - s;
+}
+placeClip(clip, dx, dy, 'Pasted');
+}
+function duplicateSel() {
+const ids = selectionIds();
+if (!ids.length) { toast('Select curves, shapes or text, then press Ctrl+D to duplicate them.'); return; }
+const clip = PS.clipEntities(st.doc, ids), s = nudge();
+st.clip = clip;
+try { localStorage.setItem(CLIP_KEY, JSON.stringify(clip)); } catch (e) { /* fine */ }
+placeClip(clip, s, -s, 'Duplicated');
+}
+function placeClip(clip, dx, dy, verb) {
+const r = PS.pasteClip(st.doc, clip, dx, dy);
+if (!r.ok) { toast(esc(r.error) + '.', true); return; }
+st.lastPaste = { sx: st.mouse.sx, sy: st.mouse.sy, d: [dx, dy] };
+if (st.tool !== 'select') setTool('select');
+commit();
+selectIds(r.ids);
+toast(verb + ' ' + countText(r.ids) + '. Drag to place, or use Transform to move by an exact amount.');
+}
+function selectIds(ids) {
+const d = st.doc, set = new Set(ids);
+st.sel.clear();
+for (const it of st.allItems) if (it.rec.ents.every(e => set.has(e)) && (st.mode === 'clean' || it.kind === 'text')) st.sel.add('s:' + it.key);
+if (st.mode === 'sketch') for (const id of ids) if (d.entities[id] && d.entities[id].type !== 'text') st.sel.add(d.entities[id].type === 'point' ? 'p:' + d.entities[id].p : 'e:' + id);
+queuePanels(); requestDraw();
+}
+function selectAll() {
+const d = st.doc;
+st.sel.clear();
+for (const it of st.items) if (!it.locked && (st.mode === 'clean' || it.kind === 'text')) st.sel.add('s:' + it.key);
+if (st.mode === 'sketch') for (const id in d.entities) {
+const e = d.entities[id];
+if (e.ref || e.type === 'text' || st.hiddenEnts.has(id) || st.lockedEnts.has(id)) continue;
+st.sel.add(e.type === 'point' ? 'p:' + e.p : 'e:' + id);
+}
+queuePanels(); requestDraw();
+}
+function transformDialog(kind) {
+const ids = selectionIds();
+if (!ids.length) { toast('Select curves, shapes or text first, then Transform.'); return; }
+const d = st.doc, x = st.xf, u = d.units;
+if (kind) x.kind = kind;
+const tab = (k, label) => '<button type="button" data-xk="' + k + '" aria-pressed="' + (x.kind === k) + '">' + label + '</button>';
+const about = id => '<div class="row"><label for="' + id + '">About</label><select class="field" id="' + id + '">' + opt('center', 'Center of the selection', x.about) + opt('origin', 'Origin', x.about) + '</select></div>';
+const h = '<h1>Transform</h1><p class="hint" style="margin:-4px 0 12px">' + countText(ids) + '. Values accept units and variables, such as <kbd>1 in</kbd> or <kbd>w/2</kbd>.</p>' +
+'<div class="seg" role="group" aria-label="Transform" id="t-kinds" style="margin-bottom:12px">' + tab('move', 'Move') + tab('rotate', 'Rotate') + tab('scale', 'Scale') + '</div>' +
+'<div id="t-move"><div class="row"><label for="t-dx">Across (X)</label><div class="pair"><input class="field" id="t-dx" value="' + esc(x.dx) + '" autocomplete="off"><span class="lab">' + u + '</span></div></div>' +
+'<div class="row"><label for="t-dy">Up (Y)</label><div class="pair"><input class="field" id="t-dy" value="' + esc(x.dy) + '" autocomplete="off"><span class="lab">' + u + '</span></div></div></div>' +
+'<div id="t-rotate"><div class="row"><label for="t-ang">Angle</label><div class="pair"><input class="field" id="t-ang" value="' + esc(x.ang) + '" autocomplete="off"><span class="lab">°</span></div></div>' + about('t-about-r') + '</div>' +
+'<div id="t-scale"><div class="row"><label for="t-k">Factor</label><div class="pair"><input class="field" id="t-k" value="' + esc(x.k) + '" autocomplete="off"><span class="lab">× size</span></div></div>' + about('t-about-s') + '</div>' +
+'<label class="check" style="margin-top:10px"><input type="checkbox" id="t-copy"' + (x.copy ? ' checked' : '') + '> Make a copy and leave the original</label>' +
+'<label class="check"><input type="checkbox" id="t-detach"' + (x.detach ? ' checked' : '') + '> Detach from the rest of the sketch</label>' +
+'<p class="note" id="t-note"></p>' +
+'<div class="foot"><button class="btn" type="button" id="t-cancel">Cancel</button><button class="btn primary" type="button" id="t-go">Apply</button></div>';
+const s = dialog(h), q = id => s.querySelector('#' + id);
+const show = () => {
+for (const k of ['move', 'rotate', 'scale']) q('t-' + k).hidden = x.kind !== k;
+for (const b of s.querySelectorAll('[data-xk]')) b.setAttribute('aria-pressed', b.dataset.xk === x.kind);
+q('t-note').textContent = x.kind === 'rotate' ? 'Positive angles turn counter-clockwise. Horizontal and vertical constraints inside the selection become parallel and perpendicular ones, so it keeps its shape.' :
+x.kind === 'scale' ? 'Dimensions inside the selection are scaled too. Dimensions written as expressions become plain numbers.' : 'Constraints that tie the selection to other geometry can hold it in place; detach to move it anyway.';
+};
+show();
+const focusFirst = () => { const f = q(x.kind === 'move' ? 't-dx' : x.kind === 'rotate' ? 't-ang' : 't-k'); f.focus(); f.select(); };
+focusFirst();
+s.querySelector('#t-kinds').addEventListener('click', e => { const b = e.target.closest('[data-xk]'); if (b) { x.kind = b.dataset.xk; show(); focusFirst(); } });
+q('t-cancel').onclick = closeDialog;
+const go = () => {
+const vars = PS.evalVars(d).vars;
+const num = (id, kind) => { const r = PS.evalExpr(q(id).value, { units: d.units, kind, vars }); if (!r.ok) { toast(esc(r.error) + '.', true); q(id).focus(); q(id).select(); return null; } return r.value; };
+x.dx = q('t-dx').value; x.dy = q('t-dy').value; x.ang = q('t-ang').value; x.k = q('t-k').value;
+x.about = (x.kind === 'rotate' ? q('t-about-r') : q('t-about-s')).value;
+x.copy = q('t-copy').checked; x.detach = q('t-detach').checked;
+let xf;
+if (x.kind === 'move') { const dx = num('t-dx', 'length'), dy = num('t-dy', 'length'); if (dx === null || dy === null) return; xf = { kind: 'move', dx, dy }; }
+else {
+const b = PS.entBounds(d, ids), c = x.about === 'origin' || !b ? { x: 0, y: 0 } : { x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 };
+if (x.kind === 'rotate') { const a = num('t-ang', 'angle'); if (a === null) return; xf = { kind: 'rotate', angle: a, cx: c.x, cy: c.y }; }
+else { const k = num('t-k', 'scalar'); if (k === null) return; if (!(k > 0)) { toast('Enter a scale factor greater than zero.', true); return; } xf = { kind: 'scale', k, cx: c.x, cy: c.y }; }
+}
+const snap = JSON.stringify(d);
+let target = ids;
+if (x.copy) {
+const p = PS.pasteClip(d, PS.clipEntities(d, ids), 0, 0);
+if (!p.ok) { toast(esc(p.error) + '.', true); return; }
+target = p.ids;
+}
+const r = PS.transformEntities(d, target, xf, { detach: x.detach && !x.copy });
+if (!r.ok) {
+PS.restoreInto(d, snap); derive(); requestDraw();
+toast(esc(r.error) + '.' + (r.held ? ' Tick Detach to move it anyway, or make a copy.' : ''), true, 8000);
+return;
+}
+closeDialog();
+commit();
+selectIds(target);
+const notes = [];
+if (r.detached) notes.push(r.detached === 1 ? 'One constraint to other geometry was removed.' : r.detached + ' constraints to other geometry were removed.');
+if (r.lost) notes.push(r.lost === 1 ? 'One horizontal or vertical point pair no longer applies and was removed.' : r.lost + ' horizontal or vertical point pairs no longer apply and were removed.');
+if (r.exprs) notes.push(r.exprs === 1 ? 'One dimension written as an expression is now a plain number.' : r.exprs + ' dimensions written as expressions are now plain numbers.');
+const verb = x.kind === 'move' ? 'moved' : x.kind === 'rotate' ? 'rotated' : 'scaled';
+toast((x.copy ? 'Copy ' + verb : verb[0].toUpperCase() + verb.slice(1)) + '.' + (notes.length ? ' ' + notes.join(' ') : ''), false, notes.length ? 7000 : 3500);
+};
+q('t-go').onclick = go;
+s.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); go(); } });
 }
 function exportItems(scope) {
 if (scope === 'page') {
@@ -6719,7 +7474,7 @@ if (old) { old.remove(); return; }
 const m = document.createElement('div');
 m.className = 'menu';
 m.innerHTML = '<button type="button" data-m="new"><span>New drawing</span></button><button type="button" data-m="open"><span>Open…</span></button><button type="button" data-m="save"><span>Save drawing…</span></button><hr>' +
-'<button type="button" data-m="export"><span>Export SVG or PNG…</span></button><button type="button" data-m="copy"><span>Copy as image</span></button><hr>' +
+'<button type="button" data-m="export"><span>Export (SVG, PNG, PDF, DXF)…</span></button><button type="button" data-m="copy"><span>Copy as image</span></button><hr>' +
 '<button type="button" data-m="example"><span>Load the example</span></button><button type="button" data-m="keys"><span>Keyboard shortcuts</span></button>';
 const r = $('btnFile').getBoundingClientRect();
 m.style.left = r.left + 'px'; m.style.top = (r.bottom + 4) + 'px';
@@ -6741,12 +7496,18 @@ else if (k === 'keys') keysDialog();
 });
 }
 function keysDialog() {
-const rows = [['Select', 'Esc'], ['Line', 'L'], ['Rectangle', 'R'], ['Circle', 'C'], ['Arc', 'A'], ['Spline', 'S'], ['Dimension', 'D'], ['Construction on/off', 'Q'],
-['Trim', 'M'], ['Extend', 'X'], ['Offset', 'O'], ['Fillet', 'Shift+F'],
-['Coincident', 'I'], ['Horizontal', 'H'], ['Vertical', 'V'], ['Parallel', 'B'], ['Perpendicular', 'Shift+L'], ['Tangent', 'T'], ['Equal', 'E'], ['Concentric', 'Shift+O'], ['Midpoint', 'Shift+M'], ['Symmetric', 'Shift+S'], ['Fix', 'Shift+X'],
-['Finish a spline or a pick step', 'Enter'], ['Delete selection', 'Delete'], ['Undo / Redo', 'Ctrl+Z / Ctrl+Y'], ['Group / ungroup', 'Ctrl+G / Ctrl+Shift+G'], ['Bring forward / send backward', 'Ctrl+] / Ctrl+['], ['Bring to front / send to back', 'Ctrl+Shift+] / Ctrl+Shift+['],
-['Sketch / Clean view', 'Tab'], ['Zoom to fit', 'F'], ['Pan', 'Right or middle drag, Space+drag'], ['Zoom', 'Scroll'], ['Snapping off', 'Hold Shift']];
-const s = dialog('<h1>Keyboard shortcuts</h1><div class="keys">' + rows.map(r => '<div><span>' + r[0] + '</span><kbd>' + r[1] + '</kbd></div>').join('') + '</div><div class="foot"><button class="btn primary" type="button" id="dlgClose">Done</button></div>');
+const groups = [
+['Draw', [['Select', ['Esc']], ['Line', ['L']], ['Rectangle', ['R']], ['Corner / center rectangle', ['Shift+R']], ['Circle', ['C']], ['Center / 3-point circle', ['Shift+C']], ['Arc', ['A']], ['3-point / center / tangent arc', ['Shift+A']],
+['Spline', ['S']], ['Construction on/off', ['Q']], ['Type a size while drawing', ['0–9']], ['Type a variable or expression', ['=']], ['Tangent arc in a line chain', ['A']], ['Finish a spline or pick step', ['Enter']]]],
+['Modify', [['Trim', ['M']], ['Extend', ['X']], ['Offset', ['O']], ['Fillet', ['Shift+F']], ['Move, rotate, scale', ['Shift+T']], ['Dimension', ['D']]]],
+['Constrain', [['Coincident', ['I']], ['Horizontal', ['H']], ['Vertical', ['V']], ['Parallel', ['B']], ['Perpendicular', ['Shift+L']], ['Tangent', ['T']], ['Equal', ['E']], ['Concentric', ['Shift+O']], ['Midpoint', ['Shift+M']], ['Symmetric', ['Shift+S']], ['Fix', ['Shift+X']]]],
+['Edit', [['Copy, cut, paste', ['Ctrl+C', 'Ctrl+X', 'Ctrl+V']], ['Duplicate', ['Ctrl+D']], ['Select all', ['Ctrl+A']], ['Delete', ['Delete']], ['Undo, redo', ['Ctrl+Z', 'Ctrl+Y']], ['Group, ungroup', ['Ctrl+G', 'Ctrl+Shift+G']],
+['Forward, backward', ['Ctrl+]', 'Ctrl+[']], ['To front, to back', ['Ctrl+Shift+]', 'Ctrl+Shift+[']], ['Save drawing', ['Ctrl+S']]]],
+['View', [['Sketch / Clean view', ['Tab']], ['Zoom to fit', ['F']], ['Zoom', ['Scroll']], ['Pan', ['Right drag', 'Space+drag']], ['Snapping off', ['Hold Shift']]]]
+];
+const col = g => '<section><h2>' + g[0] + '</h2>' + g[1].map(r => '<div><span>' + esc(r[0]) + '</span><span class="ks">' + r[1].map(k => '<kbd>' + esc(k) + '</kbd>').join('') + '</span></div>').join('') + '</section>';
+const s = dialog('<h1>Keyboard shortcuts</h1><div class="keys">' + groups.map(col).join('') + '</div><div class="foot"><button class="btn primary" type="button" id="dlgClose">Done</button></div>');
+s.querySelector('.dialog').classList.add('wide');
 s.querySelector('#dlgClose').onclick = closeDialog;
 }
 function exampleDoc() {
@@ -6790,6 +7551,11 @@ if (e.ctrlKey || e.metaKey) {
 if (k === 'z' && !e.shiftKey) { travel(-1); e.preventDefault(); }
 else if (k === 'y' || (k === 'z' && e.shiftKey)) { travel(1); e.preventDefault(); }
 else if (k === 's') { saveProject(); e.preventDefault(); }
+else if (k === 'c' && !e.shiftKey) { if (copySel(false)) e.preventDefault(); }
+else if (k === 'x' && !e.shiftKey) { if (copySel(true)) e.preventDefault(); }
+else if (k === 'v' && !e.shiftKey) { pasteSel(); e.preventDefault(); }
+else if (k === 'd' && !e.shiftKey) { duplicateSel(); e.preventDefault(); }
+else if (k === 'a' && !e.shiftKey) { selectAll(); e.preventDefault(); }
 else if (k === 'g') { if (e.shiftKey) ungroupSel(); else groupSel(); e.preventDefault(); }
 else if (e.ctrlKey && (e.code === 'BracketRight' || e.code === 'BracketLeft') && selectedShapes().length) {
 const up = e.code === 'BracketRight';
@@ -6799,6 +7565,16 @@ e.preventDefault();
 return;
 }
 if (e.altKey) return;
+if (/^[0-9.(=-]$/.test(e.key) && typeSpec() && openTypein(e.key === '=' ? '' : e.key)) { e.preventDefault(); return; }
+if (k === 'a' && st.tool === 'line' && st.ts.a && !e.shiftKey) {
+const t0 = tangentStart(st.ts.a);
+if (t0) { st.chainMode = st.opts.arcMode; st.tool = 'arc'; st.opts.arcMode = 'tangent'; st.ts = { a: t0, chain: true }; st.infer = null; hintOverride = null; syncToolbar(); syncToolOpts(); requestDraw(); return; }
+}
+if (k === 'l' && st.tool === 'arc' && st.ts.chain && st.ts.a && !e.shiftKey) {
+const a = st.ts.a;
+endChainArc();
+st.tool = 'line'; st.ts = { a: { x: a.x, y: a.y, snaps: [{ type: 'coincident', pid: a.pid }] } }; st.infer = null; syncToolbar(); syncToolOpts(); requestDraw(); return;
+}
 if (k === ' ') { st.keys.space = true; if (!st.pan) cv.style.cursor = 'grab'; e.preventDefault(); return; }
 if (k === 'Tab') { setMode(st.mode === 'sketch' ? 'clean' : 'sketch'); e.preventDefault(); return; }
 if (k === 'Escape') {
@@ -6806,6 +7582,7 @@ const ts = st.ts;
 if (st.tool === 'spline' && ts.pts && ts.pts.length) finishSpline();
 else if (st.tool !== 'select' && (ts.a || (ts.picks && ts.picks.length) || (st.tool === 'offset' && ts.ids) || (SET_TOOLS[st.tool] && ts.ids && ts.ids.length))) {
 hintOverride = null;
+if (ts.chain) endChainArc();
 st.ts = ts.picks ? { picks: [] } : SET_TOOLS[st.tool] ? { ids: [], ready: false } : {};
 st.infer = null; syncToolOpts();
 }
@@ -6820,7 +7597,12 @@ else if (st.tool === 'linpat') createLinearPattern();
 e.preventDefault(); return;
 }
 if (k === 'Delete' || k === 'Backspace') { deleteSelection(); e.preventDefault(); return; }
-if (e.shiftKey) { if (SHIFT_KEYMAP[k]) setTool(SHIFT_KEYMAP[k]); return; }
+if (e.shiftKey) {
+const alt = { r: 'rect', c: 'circle', a: 'arc' }[k];
+if (alt) { if (st.tool !== alt) setTool(alt); if (st.tool === alt) cycleMode(); return; }
+if (SHIFT_KEYMAP[k]) setTool(SHIFT_KEYMAP[k]);
+return;
+}
 if (k === 'f') { fitView(); return; }
 if (k === 'q') { toggleConstruction(); return; }
 if (KEYMAP[k]) setTool(KEYMAP[k]);
@@ -6848,9 +7630,23 @@ cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('mousedown', e => e.preventDefault());
 window.addEventListener('keydown', onKey);
 window.addEventListener('keyup', e => { st.keys.shift = e.shiftKey; if (e.key === ' ') { st.keys.space = false; if (!st.pan) cv.style.cursor = st.tool === 'select' ? 'default' : 'crosshair'; } });
+$('typein-i').addEventListener('input', onTypeInput);
+$('typein-i').addEventListener('keydown', e => {
+e.stopPropagation();
+if (e.key === 'Enter') { e.preventDefault(); applyTyped(); }
+else if (e.key === 'Escape') { e.preventDefault(); closeTypein(); }
+else if (e.key === 'Tab') {
+e.preventDefault();
+const spec = typeSpec(), t = e.target;
+if (spec && spec.kinds.length > 1 && t.value.indexOf(',') < 0) { t.value += ', '; onTypeInput(); }
+}
+});
+$('typein-i').addEventListener('blur', () => { setTimeout(() => { if (document.activeElement !== $('typein-i') && !$('typein').hidden) closeTypein(); }, 0); });
 $('dimedit').addEventListener('blur', () => { setTimeout(() => { if (editing) { setDim(editing, $('dimedit').value); closeDimEdit(); } }, 0); });
 $('toolopts').addEventListener('change', onOptChange);
 $('toolopts').addEventListener('click', e => {
+const md = e.target.closest('[data-mode]');
+if (md) { const [k, v] = md.dataset.mode.split(':'); setMode2(k, v); cv.focus({ preventScroll: true }); return; }
 const b = e.target.closest('[data-o]');
 if (!b) return;
 if (b.dataset.o === 'next') setNext(); else createLinearPattern();
